@@ -47,10 +47,10 @@ int main() {
                 msg = std::to_string(response_type) + " " + std::to_string(upc) + " " + std::to_string(quantity);
 
                 send(sock , msg.c_str() , strlen(msg.c_str()) , 0);
-                printf("Request sent\n");
+                // printf("Request sent\n");
 
                 // Read the server's response
-                valread = recv( sock , buffer, 2048, 0);
+                valread = recv(sock , buffer, 2048, 0);
                 printf("%s\n",buffer );
             }
             else{

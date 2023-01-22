@@ -13,7 +13,20 @@
 #include <sys/types.h>
 
 using namespace std;
+
+map<int, pair<string, int>> Products;
+void getProducts(){
+    FILE *fp = fopen("Product.txt", "r");
+    char buff[256], pro[256];
+    int uid, price;
+    while(fgets(buff, 256, fp)){
+        sscanf(buff, "%d %s %d", &uid, pro, &price);
+        Products[uid] = {string(pro), price};
+    }
+}
+
 int main() {
+    getProducts();
     int server_fd, new_socket, valread;
     struct sockaddr_in address;
     int opt = 1;
@@ -49,7 +62,6 @@ int main() {
         perror("listen");
         exit(EXIT_FAILURE);
     }
-    int cnt = 0;
     while(1){
         cout<<"--------Waiting for new connection-----------\n";
         new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen);
@@ -59,37 +71,39 @@ int main() {
         }
         // printing client details
         printf("Connection accepted from %s:%d\n", inet_ntoa(address.sin_addr), ntohs(address.sin_port));
-        cout<<"Clients connected: "<< ++cnt<<endl;
-        // reading request
+        // creating child process
         if((childpid = fork()) == 0){
-            int total = 0;
+            int total = 0; // keep tracks of total item value
             char buffer[2048] = {0};
             while(1){
+                memset(buffer, 0, sizeof(buffer));
+                // reading request sent by client
                 valread = read(new_socket, buffer, 2048);
-                cout<<"---------Received Request----------"<<endl;
-                printf("%s\n",buffer);
 
                 if(buffer[0] == '0'){
-                    /*Need to implement function to calculate product value*/
-                    // break buffer into string of tokens dilimiter " "
+                    // break buffer into stream of tokens dilimiter " "
                     char* token = strtok(buffer, " ");
                     vector<string> req;
                     while (token != NULL) {
                         req.push_back(string(token));
                         token = strtok(NULL, " ");
                     }
-                    cout<<"Requested Product is "<<req[1]<<endl;
-                    cout<<"Requested Product quantity is "<<stoi(req[2])<<endl;
-                    total++;
-                    send(new_socket , hello , strlen(hello) , 0);
-                    cout<<"Product Price sent"<<endl;
+                    int UPC = stoi(req[1]), Q = stoi(req[2]);
+                    string price;
+
+                    int p = Q*Products[UPC].second; // calculaitng total price
+                    total += p; // updating total price
+                    price = Products[UPC].first + " price is: " + to_string(p);
+                    // sending item price to the client
+                    send(new_socket , price.c_str() , strlen(price.c_str()) , 0);
+                    // cout<<"Product Price sent"<<endl;
                 }
                 else{
-                    string price = to_string(total);
+                    string price = "Total price: " + to_string(total);
+                    // sending total price to the client
                     send(new_socket , price.c_str() , strlen(price.c_str()) , 0);
-                    cout<<"Total Price sent"<<endl;
+                    // closing connection
                     close(new_socket);
-                    --cnt;
                     break;
                 }
             }

@@ -1,0 +1,6 @@
+100 Hammer 232
+200 Nails 5
+300 Drill 1000
+400 File 351
+500 Shaw 760
+700 Screw 3
