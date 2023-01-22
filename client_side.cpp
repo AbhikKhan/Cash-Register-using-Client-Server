@@ -10,7 +10,6 @@ int main() {
     int sock = 0, valread;
     struct sockaddr_in serv_addr;
     char hello[] = "Hello from client";
-    char buffer[1024] = {0};
 
     // Creating socket file descriptor
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -36,6 +35,7 @@ int main() {
         int response_type;
         std::string msg;
         while(1){
+            char buffer[2048] = {0};
             std::cout<<"0 to get item, 1 to close the connection\n";
             std::cin>>response_type;
             if(response_type == 0){
@@ -50,13 +50,13 @@ int main() {
                 printf("Request sent\n");
 
                 // Read the server's response
-                valread = recv( sock , buffer, 1024, 0);
+                valread = recv( sock , buffer, 2048, 0);
                 printf("%s\n",buffer );
             }
             else{
                 send(sock , "1" , 1 , 0);
                 printf("Closing request sent\n");
-                valread = recv( sock , buffer, 1024, 0);
+                valread = recv(sock, buffer, 2048, 0);
                 printf("%s\n",buffer );
                 break;
             }

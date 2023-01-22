@@ -1,4 +1,6 @@
 #include <iostream>
+#include <vector>
+#include <map>
 #include <string.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -10,12 +12,12 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
+using namespace std;
 int main() {
     int server_fd, new_socket, valread;
     struct sockaddr_in address;
     int opt = 1;
     int addrlen = sizeof(address);
-    char buffer[2048] = {0};
     const char *hello = "Hello from server";
 
     // Child process id
@@ -49,7 +51,7 @@ int main() {
     }
     int cnt = 0;
     while(1){
-        std::cout<<"Waiting for new connection..\n";
+        cout<<"--------Waiting for new connection-----------\n";
         new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen);
         if (new_socket < 0) {
             perror("accept");
@@ -57,25 +59,35 @@ int main() {
         }
         // printing client details
         printf("Connection accepted from %s:%d\n", inet_ntoa(address.sin_addr), ntohs(address.sin_port));
-        std::cout<<"Clients connected: "<< ++cnt<<std::endl;
+        cout<<"Clients connected: "<< ++cnt<<endl;
         // reading request
         if((childpid = fork()) == 0){
             int total = 0;
+            char buffer[2048] = {0};
             while(1){
                 valread = read(new_socket, buffer, 2048);
-                std::cout<<"---------Received Request----------"<<std::endl;
+                cout<<"---------Received Request----------"<<endl;
                 printf("%s\n",buffer);
 
                 if(buffer[0] == '0'){
                     /*Need to implement function to calculate product value*/
-                    std::cout<<"Requested Product is "<<std::endl;
-                    std::cout<<"Requested Product quantity is "<<std::endl;
+                    // break buffer into string of tokens dilimiter " "
+                    char* token = strtok(buffer, " ");
+                    vector<string> req;
+                    while (token != NULL) {
+                        req.push_back(string(token));
+                        token = strtok(NULL, " ");
+                    }
+                    cout<<"Requested Product is "<<req[1]<<endl;
+                    cout<<"Requested Product quantity is "<<stoi(req[2])<<endl;
+                    total++;
                     send(new_socket , hello , strlen(hello) , 0);
-                    std::cout<<"Product Price sent"<<std::endl;
+                    cout<<"Product Price sent"<<endl;
                 }
                 else{
-                    send(new_socket , hello , strlen(hello) , 0);
-                    std::cout<<"Total Price sent"<<std::endl;
+                    string price = to_string(total);
+                    send(new_socket , price.c_str() , strlen(price.c_str()) , 0);
+                    cout<<"Total Price sent"<<endl;
                     close(new_socket);
                     --cnt;
                     break;
