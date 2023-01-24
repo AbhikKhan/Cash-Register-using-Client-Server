@@ -169,8 +169,8 @@ void ChildProcess(int pID, int new_socket){
 void handler(int num){
     string response = "4 : Server terminated!";
     printf("\nServer Terminated...\n");
-	close(server_fd);
-
 	send(new_socket, response.c_str(), strlen(response.c_str()), 0);
+
+	close(server_fd);
     exit(num);
 }
