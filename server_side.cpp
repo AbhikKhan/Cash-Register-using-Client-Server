@@ -14,7 +14,7 @@
 
 using namespace std;
 
-int server_fd, new_socket, PORT;
+int ServerFD, clientSocket, PORT;
 void ChildProcess(int, int);
 void handler(int);
 
@@ -49,29 +49,30 @@ int main(int argc, char *argv[]) {
     pid_t childpid;
 
     // Creating socket file descriptor
-    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+    if ((ServerFD = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
         perror("socket failed");
         exit(EXIT_FAILURE);
     }
 
     // Forcefully attaching socket to the port
-    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
+    if (setsockopt(ServerFD, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
         perror("setsockopt");
         exit(EXIT_FAILURE);
     }
     address.sin_family = AF_INET;
-    address.sin_addr.s_addr = inet_addr(argv[1]); // using input ip address
+    // address.sin_addr.s_addr = inet_addr(argv[1]); // using input ip address
+    address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(PORT); // using input port
 
     // Forcefully attaching socket to the port
-    if (bind(server_fd, (struct sockaddr *)&address,
+    if (bind(ServerFD, (struct sockaddr *)&address,
                                  sizeof(address))<0) {
         perror("bind failed");
         exit(EXIT_FAILURE);
     }
 
     // listining to the port
-    if (listen(server_fd, 10) < 0) {
+    if (listen(ServerFD, 10) < 0) {
         perror("listen");
         exit(EXIT_FAILURE);
     }
@@ -81,8 +82,8 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, handler);
 
     while(1){
-        new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen);
-        if (new_socket < 0) {
+        clientSocket = accept(ServerFD, (struct sockaddr *)&address, (socklen_t*)&addrlen);
+        if (clientSocket < 0) {
             perror("accept");
             exit(EXIT_FAILURE);
         }
@@ -90,17 +91,17 @@ int main(int argc, char *argv[]) {
 
         // creating child process
         if((childpid = fork()) == 0){
-            close(server_fd); // closing child's listining socket as it is serving a request 
-            ChildProcess(childpid, new_socket);
-            close(new_socket); //child closes its version of connsd after computation is done (return from childprocess())
+            close(ServerFD); // closing child's listining socket as it is serving a request 
+            ChildProcess(childpid, clientSocket);
+            close(clientSocket); //child closes its version of connsd after computation is done (return from childprocess())
 			exit(0); //child terminates
         }
-        close(new_socket);
+        close(clientSocket);
     }
     return 0;
 }
 
-void ChildProcess(int pID, int new_socket){
+void ChildProcess(int pID, int clientSocket){
     int total = 0; // keep tracks of total item value
     char buffer[2048] = {0};
     string response = "";
@@ -108,18 +109,18 @@ void ChildProcess(int pID, int new_socket){
     while(1){
         memset(buffer, 0, sizeof(buffer));
         // reading request sent by client
-        int valread = read(new_socket, buffer, 2048);
+        int valread = read(clientSocket, buffer, 2048);
         
         if(valread < 0){
             response = "3 Error Receiving Command.";
-            send(new_socket, response.c_str(), strlen(response.c_str()), 0);
-            close(new_socket);
+            send(clientSocket, response.c_str(), strlen(response.c_str()), 0);
+            close(clientSocket);
             break;
         }
         
         if(strcmp(buffer, "404") == 0){
             printf("Abruptly termination from client.\n");
-            close(new_socket);
+            close(clientSocket);
             exit(0);
         }
         
@@ -137,7 +138,7 @@ void ChildProcess(int pID, int new_socket){
             
             if(t < 2){
                 response = "2 Protocol_Error Packet Discarded.";
-                send(new_socket , response.c_str() , strlen(response.c_str()) , 0);
+                send(clientSocket , response.c_str() , strlen(response.c_str()) , 0);
             }
             else{
                 string productName = Products[UPC].first;
@@ -153,24 +154,24 @@ void ChildProcess(int pID, int new_socket){
                     response += to_string(p) + " " + productName;
                 }
                 
-                send(new_socket , response.c_str() , strlen(response.c_str()) , 0);
+                send(clientSocket , response.c_str() , strlen(response.c_str()) , 0);
                 // cout<<response<<endl;
             }
         }
         else{
             response = "0 " + to_string(total);
             // sending total price to the client
-            send(new_socket , response.c_str() , strlen(response.c_str()) , 0);
+            send(clientSocket , response.c_str() , strlen(response.c_str()) , 0);
             break;
         }
     }
 }
 
 void handler(int num){
-    string response = "4 : Server terminated!";
+    string response = "4 Server terminated!";
     printf("\nServer Terminated...\n");
-	send(new_socket, response.c_str(), strlen(response.c_str()), 0);
+	send(clientSocket, response.c_str(), strlen(response.c_str()), 0);
 
-	close(server_fd);
+	close(ServerFD);
     exit(num);
 }
