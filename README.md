@@ -5,11 +5,11 @@ It is a simple demo of cash registry using client server, where the client reque
 <br>Command to run the client: **./client ServerIP ServerPORT**
 
 The client sends the request and the server gives the reply.
-<br>Request format: **<Type> <Product_UID> <Product_QTY>**
+<br>Request format: **Type Product_UID Product_QTY**
                 <br>Type 0: then client requests the price of the product.
                 <br>Type 1: then client requests for closing the connection.
-<br>Response format: **<Type> <Total_Price> <Product_Name>**
+<br>Response format: **Type Total_Price Product_Name**
                 <br>Type 0: it is a valid response.
                 <br>Else: The response is invalid.
 <br>Before closing the connection the server, after receiving Type 1, sends the total price to the client and closes the client socket.
-<br>Concurrent client access is implemented using **fork** system call.
+<br>Concurrent client access is implemented using **fork()** system call.
